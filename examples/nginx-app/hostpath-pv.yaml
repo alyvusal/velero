@@ -1,0 +1,87 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hostpath-pv
+  labels:
+    app: nginx
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: nginx-logs
+  namespace: hostpath-pv
+  labels:
+    app: nginx
+spec:
+  storageClassName: csi-hostpath-sc
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: hostpath-pv
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+      # annotations:
+      # Add below annotation to do FSB abckup instead of PV snapshot
+      #   backup.velero.io/backup-volumes: nginx-logs  # when don't want to use --default-volumes-to-fs-backup for all volumes
+      #
+      # don't enable freeze, OS hangs
+      #   pre.hook.backup.velero.io/container: fsfreeze
+      #   pre.hook.backup.velero.io/command: '["/sbin/fsfreeze", "--freeze", "/var/log/nginx"]'
+      #   post.hook.backup.velero.io/container: fsfreeze
+      #   post.hook.backup.velero.io/command: '["/sbin/fsfreeze", "--unfreeze", "/var/log/nginx"]'
+    spec:
+      volumes:
+        - name: nginx-logs
+          persistentVolumeClaim:
+           claimName: nginx-logs
+      containers:
+      - image: nginx:1.17.6
+        name: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - mountPath: "/var/log/nginx"
+            name: nginx-logs
+            readOnly: false
+      - image: ubuntu:bionic
+        name: fsfreeze
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: "/var/log/nginx"
+            name: nginx-logs
+            readOnly: false
+        command:
+          - "/bin/bash"
+          - "-c"
+          - "sleep infinity"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nginx
+  name: my-nginx
+  namespace: hostpath-pv
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: nginx
+  type: LoadBalancer
