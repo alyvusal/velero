@@ -10,7 +10,7 @@ helm upgrade -i velero vmware-tanzu/velero \
   -n velero \
   --set-file credentials.secretContents.cloud=/tmp/credentials-velero \
   -f helm/values.yaml
-  --version 8.3.0
+  --version 12.2.4
 ```
 
 ## REFERENCE

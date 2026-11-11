@@ -1,29 +1,37 @@
 deployNodeAgent: true  # Enable FS backups (i.e. Restic, Kopia)
 
-initContainers:
-  # At least one plugin provider image is required
-  # https://github.com/orgs/vmware-tanzu/repositories?q=velero-plugin-for-
-  # Add AWS integration support (used for snapshots and backup to S3)
-  - name: velero-plugin-for-aws
-    image: velero/velero-plugin-for-aws:v1.11.0
-    imagePullPolicy: IfNotPresent
-    volumeMounts:
-      - mountPath: /target
-        name: plugins
+# initContainers:
+#   # At least one plugin provider image is required
+#   # https://github.com/orgs/velero-io/repositories?q=velero-plugin-for-
+
+#   # Add AWS integration support (used for snapshots and backup to S3)
+#   # - name: velero-plugin-for-aws
+#   #   image: velero/velero-plugin-for-aws:v1.14.4
+#   #   imagePullPolicy: IfNotPresent
+#   #   volumeMounts:
+#   #     - mountPath: /target
+#   #       name: plugins
+
+#   # Add GCP integration support (used for snapshots and backup to GCS)
+#   # - name: velero-plugin-for-gcp
+#   #   image: velero/velero-plugin-for-gcp:v1.14.4
+#   #   imagePullPolicy: IfNotPresent
+#   #   volumeMounts:
+#   #     - mountPath: /target
+#   #       name: plugins
 
 configuration:
   # extraArgs: ["--fs-backup-timeout=240m"]
   # features: EnableCSI
-  uploaderType: kopia
   backupStorageLocation:
     - name: minio  # default is 'default'
-      bucket: alyvusal-terraform-backend  # <------------------- Name of bucket
+      bucket: alyvusal-terraform-backend  # Name of bucket
       # Set true for backup all pod volumes without having to apply annotation on the pod when used file system backup
       defaultVolumesToFsBackup: False
       provider: aws
       config:
         region: us-east-1
-        s3ForcePathStyle: true  # <------------------ Only needed when S3-compatible storage is used instead of AWS S3 storage
+        s3ForcePathStyle: true  # Only needed when S3-compatible storage is used instead of AWS S3 storage
         s3Url: https://minio-192.168.0.100.nip.io/buckets/alyvusal-terraform-backend # <- Only needed when S3-compatible storage is used instead of AWS S3 storage
   volumeSnapshotLocation:
     - provider: aws
